@@ -17,6 +17,7 @@ public:
     bool Connect(const char* ip, int port);
     bool SendData(const char* data);
     bool ReceiveData(char* buffer);
+    void CloseConnection();
 
 private:
     WSADATA m_wsaData;

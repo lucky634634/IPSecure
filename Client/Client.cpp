@@ -9,7 +9,8 @@ Client::Client()
 
 Client::~Client()
 {
-	closesocket(m_socket);
+	if (m_socket != INVALID_SOCKET)
+		closesocket(m_socket);
 	WSACleanup();
 }
 
@@ -71,4 +72,14 @@ bool Client::ReceiveData(char* buffer)
 		return false;
 	}
 	return true;
+}
+
+void Client::CloseConnection()
+{
+	if (m_socket != INVALID_SOCKET)
+	{
+		closesocket(m_socket);
+		m_socket = INVALID_SOCKET;
+	}
+	WSACleanup();
 }

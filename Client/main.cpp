@@ -17,6 +17,7 @@ int main()
 		return 3;
 	}
 	client.SendData("Hello");
+	client.CloseConnection();
 	system("pause");
 	return 0;
 }
