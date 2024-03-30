@@ -12,15 +12,19 @@ class Client
 public:
     Client();
     virtual ~Client();
-    bool InitializeWsa();
-    bool InitializeSocket();
+
+private:
+    bool InitWsa();
+    void CollectError();
+    bool CreateSocket();
     bool Connect(const char* ip, int port);
-    bool SendData(const char* data);
-    bool ReceiveData(char* buffer);
+    bool Authenticate();
 
 private:
     WSADATA m_wsaData;
-    SOCKET m_socket;
-    SOCKADDR_IN m_socketAddress;
+    SOCKET m_clientSocket;
+
+    std::string m_username;
+    std::string m_password;
 };
 

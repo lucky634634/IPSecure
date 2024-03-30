@@ -2,73 +2,81 @@
 
 Client::Client()
 {
-	m_wsaData = { 0 };
-	m_socket = INVALID_SOCKET;
-	m_socketAddress = { 0 };
+    m_wsaData = { 0 };
+    m_clientSocket = INVALID_SOCKET;;
 }
 
 Client::~Client()
+{}
+
+bool Client::InitWsa()
 {
-	closesocket(m_socket);
-	WSACleanup();
+    int status = WSAStartup(MAKEWORD(2, 2), &m_wsaData);
+    if (status != 0)
+    {
+        return false;
+    }
+    return true;
 }
 
-bool Client::InitializeWsa()
+void Client::CollectError()
 {
-	int result = WSAStartup(MAKEWORD(2, 2), &m_wsaData);
-	if (result != NO_ERROR)
-	{
-		std::cerr << "WSAStartup failed: " << WSAGetLastError() << std::endl;
-		return false;
-	}
-	return true;
+    std::cerr << "Error: " << WSAGetLastError() << std::endl;
 }
 
-bool Client::InitializeSocket()
+bool Client::CreateSocket()
 {
-	m_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_socket == INVALID_SOCKET)
-	{
-		std::cerr << "socket failed: " << WSAGetLastError() << std::endl;
-		WSACleanup();
-		return false;
-	}
-	return true;
+    m_clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    if (m_clientSocket == INVALID_SOCKET)
+    {
+        CollectError();
+        return false;
+    }
+    return true;
 }
 
 bool Client::Connect(const char* ip, int port)
 {
-	m_socketAddress.sin_family = AF_INET;
-	inet_pton(AF_INET, ip, &m_socketAddress.sin_addr);
-	m_socketAddress.sin_port = htons(port);
-	int result = connect(m_socket, (SOCKADDR*)&m_socketAddress, sizeof(m_socketAddress));
-	if (result == SOCKET_ERROR)
-	{
-		std::cerr << "connect failed: " << WSAGetLastError() << std::endl;
-		return false;
-	}
-	return true;
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    inet_pton(AF_INET, ip, &addr.sin_addr);
+
+    int status = connect(m_clientSocket, (sockaddr*)&addr, sizeof(addr));
+    if (status == SOCKET_ERROR)
+    {
+        CollectError();
+        return false;
+    }
+    return true;
 }
 
-bool Client::SendData(const char* data)
+bool Client::Authenticate()
 {
-	int result = send(m_socket, data, strlen(data) + 1, 0);
-	if (result == SOCKET_ERROR)
-	{
-		std::cerr << "send failed: " << WSAGetLastError() << std::endl;
-		return false;
-	}
-	return true;
-}
+    if (m_username.empty() || m_password.empty())
+    {
+        return false;
+    }
 
-bool Client::ReceiveData(char* buffer)
-{
-	memset(buffer, 0, MAX_BUFFER_SIZE);
-	int result = recv(m_socket, buffer, MAX_BUFFER_SIZE, 0);
-	if (result == SOCKET_ERROR)
-	{
-		std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-		return false;
-	}
-	return true;
+    char buffer[MAX_BUFFER_SIZE] = { 0 };
+    std::string msg = "AUTHENTICATE " + m_username + ":" + m_password;
+    int status = send(m_clientSocket, msg.c_str(), msg.length(), 0);
+    if (status == SOCKET_ERROR)
+    {
+        CollectError();
+        return false;
+    }
+
+    status = recv(m_clientSocket, buffer, MAX_BUFFER_SIZE, 0);
+    if (status == SOCKET_ERROR)
+    {
+        CollectError();
+        return false;
+    }
+    if (strcmp(buffer, "OK") != 0)
+    {
+        return false;
+    }
+
+    return true;
 }
