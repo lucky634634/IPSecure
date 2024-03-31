@@ -46,5 +46,6 @@ private:
 
 	std::map<std::string, std::string> m_users;
 	std::thread m_thread;
+	std::atomic<bool> m_running;
 };
 

@@ -127,10 +127,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Cryptography.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Server.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Cryptography.h" />
     <ClInclude Include="Server.h" />
   </ItemGroup>
   <ItemGroup>
