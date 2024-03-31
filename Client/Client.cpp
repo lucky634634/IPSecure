@@ -1,5 +1,6 @@
 #include "Client.h"
 
+
 Client::Client()
 {
 	m_wsaData = { 0 };
@@ -14,6 +15,12 @@ Client::~Client()
 
 void Client::Run(const char* ip, int port)
 {
+	std::cout << "Enter username: ";
+	std::cin >> m_username;
+	std::cout << "Enter password: ";
+	std::cin.ignore(MAXINT, '\n');
+	std::cin >> m_password;
+	std::cout << GetSHA1(m_password) << std::endl;
 	std::cout << "Client is running" << std::endl;
 	if (!InitWsa())
 	{
@@ -29,16 +36,26 @@ void Client::Run(const char* ip, int port)
 	{
 		return;
 	}
+
+	std::cout << "Authenticating" << std::endl;
+	if (!Authenticate())
+	{
+		std::cout << "Authentication failed" << std::endl;
+		return;
+	}
+	std::cout << "Authentication successful" << std::endl;
+	m_running = true;
 	do
 	{
 		std::thread t(&Client::HandleResponse, this);
 		std::string msg;
+		std::cout << "Enter message: ";
 		std::cin >> msg;
+		send(m_clientSocket, msg.c_str(), msg.size(), 0);
 		if (msg == "exit")
 		{
 			m_running = false;
 		}
-		send(m_clientSocket, msg.c_str(), msg.size(), 0);
 		t.join();
 	} while (m_running);
 
@@ -94,7 +111,7 @@ bool Client::Authenticate()
 	}
 
 	char buffer[MAX_BUFFER_SIZE] = { 0 };
-	std::string msg = "AUTHENTICATE " + m_username + ":" + m_password;
+	std::string msg = m_username + ":" + m_password;
 	int status = send(m_clientSocket, msg.c_str(), msg.length(), 0);
 	if (status == SOCKET_ERROR)
 	{
@@ -118,8 +135,31 @@ bool Client::Authenticate()
 
 void Client::HandleResponse()
 {
-
 	char buffer[MAX_BUFFER_SIZE] = { 0 };
 	int status = recv(m_clientSocket, buffer, MAX_BUFFER_SIZE, 0);
+	if (status == SOCKET_ERROR)
+	{
+		return;
+	}
 	std::cout << "Server: " << buffer << std::endl;
+	if (strcmp(buffer, "exit") == 0)
+	{
+		m_running = false;
+	}
+}
+
+std::string Client::GetSHA1(const std::string& input)
+{
+	using namespace CryptoPP;
+	std::string output;
+	SHA1 hash;
+	hash.Update((const byte*)input.data(), input.size());
+	output.resize(hash.DigestSize());
+	hash.Final((byte*)&output[0]);
+	std::stringstream ss;
+	HexEncoder encoder(new FileSink(ss));
+	StringSource strsrc(output, true, new Redirector(encoder));
+	ss >> output;
+
+	return output;
 }

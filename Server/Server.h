@@ -7,10 +7,10 @@
 #include <thread>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include <bcrypt.h>
+#include <cryptlib.h>
 
 #pragma comment(lib, "ws2_32.lib")
-#pragma comment(lib, "bcrypt.lib")
+#pragma comment(lib, "cryptlib.lib")
 
 #define MAX_BUFFER_SIZE 1024
 

@@ -45,7 +45,11 @@ void Server::Run(int port)
 	{
 		return;
 	}
-
+	if (!Authenticate())
+	{
+		std::cout << "Authentication failed." << std::endl;
+		return;
+	}
 	std::cout << "Client connected." << std::endl;
 	do
 	{
@@ -53,12 +57,12 @@ void Server::Run(int port)
 		std::string msg;
 		std::cout << "Enter message: ";
 		std::cin >> msg;
+		int status = send(m_clientSocket, msg.c_str(), msg.size(), 0);
 		if (msg == "exit")
 		{
 			m_running = false;
 			closesocket(m_clientSocket);
 		}
-		int status = send(m_clientSocket, msg.c_str(), msg.size(), 0);
 		t.join();
 	} while (m_running && m_clientSocket != INVALID_SOCKET);
 	closesocket(m_clientSocket);
@@ -163,11 +167,13 @@ bool Server::Authenticate()
 	}
 
 	std::string msg(buffer);
-	std::string username = msg.substr(msg.find("Authenticate ") + 14, msg.find(":"));
+	std::string username = msg.substr(0, msg.find(":"));
 	std::string password = msg.substr(msg.find(":") + 1);
 
 	if (m_users.find(username) != m_users.end() && m_users[username] == password)
 	{
+		std::cout << "Authentication successful." << std::endl;
+		send(m_clientSocket, "OK", 2, 0);
 		return true;
 	}
 	return false;
@@ -194,6 +200,10 @@ void Server::HandleClient()
 
 	char buffer[MAX_BUFFER_SIZE] = { 0 };
 	int status = recv(m_clientSocket, buffer, MAX_BUFFER_SIZE, 0);
+	if (status == SOCKET_ERROR)
+	{
+		return;
+	}
 	std::cout << "Client: " << buffer << std::endl;
 	if (std::string(buffer) == "exit")
 	{
