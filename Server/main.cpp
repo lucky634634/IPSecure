@@ -3,7 +3,8 @@
 
 int main()
 {
-
+	Server server;
+	server.Run();
 	system("pause");
 	return 0;
 }

@@ -7,10 +7,11 @@
 #include <thread>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include <bcrypt.h>
+#include <cryptlib.h>
+#include "Cryptography.h"
 
 #pragma comment(lib, "ws2_32.lib")
-#pragma comment(lib, "bcrypt.lib")
+#pragma comment(lib, "cryptlib.lib")
 
 #define MAX_BUFFER_SIZE 1024
 
@@ -33,7 +34,7 @@ private:
 	bool Authenticate();
 	void Load(const std::string& path);
 	void HandleClient();
-	void SendMessage(std::string msg);
+	void SendMsg(std::string msg);
 	bool PerformKeyExchange();
 
 private:
@@ -42,9 +43,11 @@ private:
 	SOCKET m_serverSocket;
 	SOCKET m_clientSocket;
 
-	std::vector<char> m_sharedKey;
+	std::string m_key;
+	std::string m_iv;
 
 	std::map<std::string, std::string> m_users;
 	std::thread m_thread;
+	std::atomic<bool> m_running;
 };
 
