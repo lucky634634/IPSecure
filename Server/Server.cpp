@@ -50,6 +50,11 @@ void Server::Run(int port)
 		std::cout << "Authentication failed." << std::endl;
 		return;
 	}
+	if (!PerformKeyExchange())
+	{
+		std::cout << "Key exchange failed." << std::endl;
+		return;
+	}
 	std::cout << "Client connected." << std::endl;
 	do
 	{
@@ -57,7 +62,7 @@ void Server::Run(int port)
 		std::string msg;
 		std::cout << "Enter message: ";
 		std::cin >> msg;
-		int status = send(m_clientSocket, msg.c_str(), msg.size(), 0);
+		SendMsg(msg);
 		if (msg == "exit")
 		{
 			m_running = false;
@@ -204,7 +209,8 @@ void Server::HandleClient()
 	{
 		return;
 	}
-	std::cout << "Client: " << buffer << std::endl;
+	std::string decoded = DecryptAES(buffer, m_key, m_iv);
+	std::cout << "Client: " << decoded << std::endl;
 	if (std::string(buffer) == "exit")
 	{
 		closesocket(m_clientSocket);
@@ -213,12 +219,26 @@ void Server::HandleClient()
 	}
 }
 
-void Server::SendMessage(std::string msg)
+void Server::SendMsg(std::string msg)
 {
-
+	std::string encoded = EncryptAES(msg, m_key, m_iv);
+	int status = send(m_clientSocket, encoded.c_str(), encoded.size(), 0);
+	if (status == SOCKET_ERROR)
+	{
+		CollectError();
+		return;
+	}
 }
 
 bool Server::PerformKeyExchange()
 {
+	CreateAESKey(m_key, m_iv);
+	std::string msg = m_key + "\r\n" + m_iv;
+	int status = send(m_clientSocket, msg.c_str(), msg.size(), 0);
+	if (status == SOCKET_ERROR)
+	{
+		CollectError();
+		return false;
+	}
 	return true;
 }

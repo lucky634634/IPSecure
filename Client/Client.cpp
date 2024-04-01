@@ -20,7 +20,6 @@ void Client::Run(const char* ip, int port)
 	std::cout << "Enter password: ";
 	std::cin.ignore(MAXINT, '\n');
 	std::cin >> m_password;
-	std::cout << GetSHA1(m_password) << std::endl;
 	std::cout << "Client is running" << std::endl;
 	if (!InitWsa())
 	{
@@ -44,6 +43,13 @@ void Client::Run(const char* ip, int port)
 		return;
 	}
 	std::cout << "Authentication successful" << std::endl;
+	std::cout << "Performing key exchange" << std::endl;
+	if (!PerformKeyExchange())
+	{
+		std::cout << "Key exchange failed" << std::endl;
+		return;
+	}
+	std::cout << "Key exchange successful" << std::endl;
 	m_running = true;
 	do
 	{
@@ -51,7 +57,7 @@ void Client::Run(const char* ip, int port)
 		std::string msg;
 		std::cout << "Enter message: ";
 		std::cin >> msg;
-		send(m_clientSocket, msg.c_str(), msg.size(), 0);
+		SendMsg(msg);
 		if (msg == "exit")
 		{
 			m_running = false;
@@ -111,7 +117,7 @@ bool Client::Authenticate()
 	}
 
 	char buffer[MAX_BUFFER_SIZE] = { 0 };
-	std::string msg = m_username + ":" + m_password;
+	std::string msg = m_username + ":" + GetSHA1(m_password);
 	int status = send(m_clientSocket, msg.c_str(), msg.length(), 0);
 	if (status == SOCKET_ERROR)
 	{
@@ -133,6 +139,21 @@ bool Client::Authenticate()
 	return true;
 }
 
+bool Client::PerformKeyExchange()
+{
+	char buffer[MAX_BUFFER_SIZE] = { 0 };
+	int status = recv(m_clientSocket, buffer, MAX_BUFFER_SIZE, 0);
+	if (status == SOCKET_ERROR)
+	{
+		CollectError();
+		return false;
+	}
+	std::string temp = buffer;
+	m_key = temp.substr(0, temp.find("\r\n"));
+	m_iv = temp.substr(temp.find("\r\n") + 2);
+	return true;
+}
+
 void Client::HandleResponse()
 {
 	char buffer[MAX_BUFFER_SIZE] = { 0 };
@@ -141,25 +162,17 @@ void Client::HandleResponse()
 	{
 		return;
 	}
-	std::cout << "Server: " << buffer << std::endl;
-	if (strcmp(buffer, "exit") == 0)
+	std::string decrypted = DecryptAES(std::string(buffer), m_key, m_iv);
+	std::cout << "Server: " << decrypted << std::endl;
+	if (decrypted == "exit")
 	{
 		m_running = false;
 	}
 }
 
-std::string Client::GetSHA1(const std::string& input)
+void Client::SendMsg(std::string message)
 {
-	using namespace CryptoPP;
-	std::string output;
-	SHA1 hash;
-	hash.Update((const byte*)input.data(), input.size());
-	output.resize(hash.DigestSize());
-	hash.Final((byte*)&output[0]);
-	std::stringstream ss;
-	HexEncoder encoder(new FileSink(ss));
-	StringSource strsrc(output, true, new Redirector(encoder));
-	ss >> output;
-
-	return output;
+	std::string encrypted = EncryptAES(message, m_key, m_iv);
+	send (m_clientSocket, encrypted.c_str(), encrypted.length(), 0);
 }
+

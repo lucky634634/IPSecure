@@ -3,14 +3,11 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <thread>
-#include <cryptlib.h>
-#include <sha.h>
-#include <hex.h>
-#include <files.h>
-#include <sstream>
+#include "Cryptography.h"
+
 
 #pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "cryptlib.lib")
+
 
 #define MAX_BUFFER_SIZE 1024
 
@@ -27,8 +24,9 @@ private:
     bool CreateSocket();
     bool Connect(const char* ip, int port);
     bool Authenticate();
+    bool PerformKeyExchange();
     void HandleResponse();
-    std::string GetSHA1(const std::string& input);
+    void SendMsg(std::string message);
 
 private:
     WSADATA m_wsaData;
@@ -36,5 +34,8 @@ private:
     std::atomic_bool m_running;
     std::string m_username;
     std::string m_password;
+
+    std::string m_key;
+    std::string m_iv;
 };
 
