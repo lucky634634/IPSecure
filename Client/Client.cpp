@@ -13,8 +13,11 @@ Client::~Client()
 	WSACleanup();
 }
 
-void Client::Run(const char* ip, int port)
+void Client::Run(int port)
 {
+	std::string ip = "127.0.0.1";
+	std::cout << "Enter server IP: ";
+	std::getline(std::cin, ip);
 	std::cout << "Enter username: ";
 	std::cin >> m_username;
 	std::cout << "Enter password: ";
@@ -31,7 +34,7 @@ void Client::Run(const char* ip, int port)
 		return;
 	}
 	std::cout << "Connecting to server" << std::endl;
-	if (!Connect(ip, port))
+	if (!Connect(ip.c_str(), port))
 	{
 		return;
 	}
