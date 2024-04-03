@@ -16,7 +16,7 @@ class Client
 public:
     Client();
     virtual ~Client();
-    void Run(const char* ip, int port);
+    void Run(int port);
 
 private:
     bool InitWsa();
