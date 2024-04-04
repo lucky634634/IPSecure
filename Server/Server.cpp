@@ -48,6 +48,8 @@ void Server::Run(int port)
 	if (!Authenticate())
 	{
 		std::cout << "Authentication failed." << std::endl;
+		closesocket(m_clientSocket);
+		m_clientSocket = INVALID_SOCKET;
 		return;
 	}
 	if (!PerformKeyExchange())
